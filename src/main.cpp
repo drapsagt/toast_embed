@@ -1,20 +1,9 @@
-#include <Arduino.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include <Adafruit_AHTX0.h>
-
-// WiFi credentials
-
-// put function declarations here:
-int myFunction(int, int);
-
-void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+#include "main.h"
 
 // MQTT Topics
 const char *topic_temperature = "sensors/temperature";
 const char *topic_humidity = "sensors/humidity";
+const char *topic_battery = "sensors/battery";
 const char *topic_status = "device/status";
 
 WiFiClient espClient;
@@ -24,6 +13,7 @@ Adafruit_AHTX0 aht;
 // Variables for sensor readings
 float temperature = 0.0;
 float humidity = 0.0;
+int battery = 0;
 unsigned long lastMsg = 0;
 const unsigned long MSG_INTERVAL = 5000; // Send data every 5 seconds
 
@@ -101,6 +91,7 @@ void publishSensorData()
 
   temperature = temp_event.temperature;
   humidity = humidity_event.relative_humidity;
+  battery = analogRead(A0);
 
   // Check if readings are valid
   if (isnan(temperature) || isnan(humidity))
@@ -112,6 +103,8 @@ void publishSensorData()
   // Convert to strings
   char tempString[8];
   char humString[8];
+  char batteryString[8];
+  dtostrf(battery, 1, 2, batteryString);
   dtostrf(temperature, 1, 2, tempString);
   dtostrf(humidity, 1, 2, humString);
 
@@ -125,10 +118,17 @@ void publishSensorData()
   Serial.print(humString);
   Serial.println("%");
   client.publish(topic_humidity, humString);
+
+  Serial.print("Publishing battery level: ");
+  Serial.print(batteryString);
+  Serial.println("V");
+  client.publish(topic_battery, batteryString);
 }
 
 void setup()
 {
+  pinMode(A0, INPUT);
+
   Serial.begin(115200);
   Serial.println("Starting ESP32 MQTT Client");
 
